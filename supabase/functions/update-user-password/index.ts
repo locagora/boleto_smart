@@ -55,12 +55,21 @@ serve(async (req) => {
       throw new Error('Password must be at least 6 characters');
     }
 
-    // Find user by email
-    const { data: { users }, error: getUserError } = await supabaseAdmin.auth.admin.listUsers();
-    const targetUser = users?.find(u => u.email === email);
+    // Find user by email using getUserByEmail (more efficient and reliable)
+    const { data: userListData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+      perPage: 1000
+    });
+
+    if (listError) {
+      console.error('Error listing users:', listError);
+      throw new Error('Failed to search for user: ' + listError.message);
+    }
+
+    const targetUser = userListData?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
 
     if (!targetUser) {
-      throw new Error('User not found');
+      // User doesn't exist in Auth - this franquia may not have a login yet
+      throw new Error('Usuário não encontrado no sistema de autenticação. A franquia pode não ter sido criada com login.');
     }
 
     // Update the user's password
