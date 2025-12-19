@@ -65,25 +65,88 @@ serve(async (req) => {
       throw new Error('Failed to search for user: ' + listError.message);
     }
 
-    const targetUser = userListData?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    let targetUser = userListData?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    let userCreated = false;
 
     if (!targetUser) {
-      // User doesn't exist in Auth - this franquia may not have a login yet
-      throw new Error('Usuário não encontrado no sistema de autenticação. A franquia pode não ter sido criada com login.');
+      // User doesn't exist in Auth - create it automatically
+      console.log('User not found, creating new user for:', email);
+
+      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: email,
+        password: newPassword,
+        email_confirm: true, // Auto-confirm email
+      });
+
+      if (createError) {
+        console.error('Error creating user:', createError);
+        throw new Error('Erro ao criar usuário: ' + createError.message);
+      }
+
+      targetUser = newUser.user;
+      userCreated = true;
+      console.log('User created successfully:', email);
+
+      // Find the franquia to determine the role
+      const { data: franquia } = await supabaseAdmin
+        .from('franquias')
+        .select('id')
+        .eq('email', email)
+        .single();
+
+      const { data: masterRegional } = await supabaseAdmin
+        .from('master_regionais')
+        .select('id')
+        .eq('email', email)
+        .single();
+
+      // Assign appropriate role
+      if (franquia) {
+        await supabaseAdmin.from('user_roles').insert({
+          user_id: targetUser!.id,
+          role: 'franquia'
+        });
+
+        // Link user to franquia in user_entities
+        await supabaseAdmin.from('user_entities').insert({
+          user_id: targetUser!.id,
+          entity_type: 'franquia',
+          entity_id: franquia.id
+        });
+
+        console.log('Assigned franquia role to user:', email);
+      } else if (masterRegional) {
+        await supabaseAdmin.from('user_roles').insert({
+          user_id: targetUser!.id,
+          role: 'master_regional'
+        });
+
+        // Link user to master_regional in user_entities
+        await supabaseAdmin.from('user_entities').insert({
+          user_id: targetUser!.id,
+          entity_type: 'master_regional',
+          entity_id: masterRegional.id
+        });
+
+        console.log('Assigned master_regional role to user:', email);
+      }
+    } else {
+      // User exists, just update the password
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        targetUser.id,
+        { password: newPassword }
+      );
+
+      if (updateError) throw updateError;
+      console.log('Password updated for user:', email);
     }
 
-    // Update the user's password
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-      targetUser.id,
-      { password: newPassword }
-    );
-
-    if (updateError) throw updateError;
-
-    console.log('Password updated for user:', email);
+    const message = userCreated
+      ? 'Usuário criado e senha definida com sucesso!'
+      : 'Senha atualizada com sucesso!';
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Password updated successfully' }),
+      JSON.stringify({ success: true, message, userCreated }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
