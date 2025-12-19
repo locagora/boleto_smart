@@ -91,31 +91,70 @@ const PaymentBoleto = () => {
         .eq("ativo", true);
       setFranquias(data || []);
     } else if (role === "master_regional") {
-      const { data: userEmail } = await supabase.auth.getUser();
-      const { data: master } = await supabase
-        .from("master_regionais")
-        .select("id")
-        .eq("email", userEmail.user?.email)
-        .maybeSingle();
+      // Primeiro, buscar os master_regional_ids associados ao usuário via user_entities
+      const { data: userEntities } = await supabase
+        .from("user_entities")
+        .select("entity_id")
+        .eq("user_id", userId)
+        .eq("entity_type", "master_regional");
 
-      if (master) {
+      if (userEntities && userEntities.length > 0) {
+        const masterIds = userEntities.map(ue => ue.entity_id);
         const { data } = await supabase
           .from("franquias")
           .select("id, nome, webhook")
-          .eq("master_regional_id", master.id)
+          .in("master_regional_id", masterIds)
           .eq("ativo", true);
         setFranquias(data || []);
+      } else {
+        // Fallback: buscar por email para compatibilidade
+        const { data: userEmail } = await supabase.auth.getUser();
+        const { data: master } = await supabase
+          .from("master_regionais")
+          .select("id")
+          .eq("email", userEmail.user?.email)
+          .maybeSingle();
+
+        if (master) {
+          const { data } = await supabase
+            .from("franquias")
+            .select("id, nome, webhook")
+            .eq("master_regional_id", master.id)
+            .eq("ativo", true);
+          setFranquias(data || []);
+        }
       }
     } else if (role === "franquia") {
-      const { data: userEmail } = await supabase.auth.getUser();
-      const { data } = await supabase
-        .from("franquias")
-        .select("id, nome, webhook")
-        .eq("email", userEmail.user?.email)
-        .eq("ativo", true);
-      setFranquias(data || []);
-      if (data && data.length > 0) {
-        setSelectedFranquiaId(data[0].id);
+      // Primeiro, buscar os franquia_ids associados ao usuário via user_entities
+      const { data: userEntities } = await supabase
+        .from("user_entities")
+        .select("entity_id")
+        .eq("user_id", userId)
+        .eq("entity_type", "franquia");
+
+      if (userEntities && userEntities.length > 0) {
+        const franquiaIds = userEntities.map(ue => ue.entity_id);
+        const { data } = await supabase
+          .from("franquias")
+          .select("id, nome, webhook")
+          .in("id", franquiaIds)
+          .eq("ativo", true);
+        setFranquias(data || []);
+        if (data && data.length > 0) {
+          setSelectedFranquiaId(data[0].id);
+        }
+      } else {
+        // Fallback: buscar por email para compatibilidade
+        const { data: userEmail } = await supabase.auth.getUser();
+        const { data } = await supabase
+          .from("franquias")
+          .select("id, nome, webhook")
+          .eq("email", userEmail.user?.email)
+          .eq("ativo", true);
+        setFranquias(data || []);
+        if (data && data.length > 0) {
+          setSelectedFranquiaId(data[0].id);
+        }
       }
     }
   };
