@@ -10,12 +10,23 @@ import { z } from "zod";
 
 const planos = [
   {
+    id: "locagora",
+    nome: "Plano Locagora",
+    faixa: "Franqueados Locagora",
+    valorPorCliente: 0,
+    valorFixo: 149.90,
+    mensalidadeEstimada: "R$ 149,90",
+    indicado: "Parceria exclusiva para franqueados Locagora",
+    popular: true,
+    isFixedPrice: true,
+  },
+  {
     id: "essencial",
     nome: "Plano Essencial",
     faixa: "1 a 10 clientes",
     valorPorCliente: 20,
     mensalidadeEstimada: "R$ 20,00 a R$ 200,00",
-    indicado: "Franquias iniciando operação",
+    indicado: "Empresas iniciando operação",
     popular: false,
   },
   {
@@ -24,25 +35,16 @@ const planos = [
     faixa: "11 a 30 clientes",
     valorPorCliente: 15,
     mensalidadeEstimada: "R$ 165,00 a R$ 450,00",
-    indicado: "Franquias em expansão",
-    popular: true,
+    indicado: "Empresas em expansão",
+    popular: false,
   },
   {
     id: "avancado",
     nome: "Plano Avançado",
-    faixa: "31 a 50 clientes",
+    faixa: "31+ clientes",
     valorPorCliente: 10,
-    mensalidadeEstimada: "R$ 310,00 a R$ 500,00",
-    indicado: "Franquias com operação consolidada",
-    popular: false,
-  },
-  {
-    id: "elite",
-    nome: "Plano Elite",
-    faixa: "51+ clientes",
-    valorPorCliente: 8,
-    mensalidadeEstimada: "A partir de R$ 408,00",
-    indicado: "Grandes operações e redes franqueadas",
+    mensalidadeEstimada: "A partir de R$ 310,00",
+    indicado: "Empresas com operação consolidada",
     popular: false,
   },
 ];
@@ -86,17 +88,24 @@ const Planos = () => {
 
   const getPlanoRange = (planoId: string): { min: number; max: number } => {
     switch (planoId) {
+      case "locagora": return { min: 0, max: Infinity };
       case "essencial": return { min: 1, max: 10 };
       case "profissional": return { min: 11, max: 30 };
-      case "avancado": return { min: 31, max: 50 };
-      case "elite": return { min: 51, max: Infinity };
+      case "avancado": return { min: 31, max: Infinity };
       default: return { min: 1, max: Infinity };
     }
+  };
+
+  const isFixedPricePlan = (planoId: string | null): boolean => {
+    if (!planoId) return false;
+    const plano = planos.find(p => p.id === planoId);
+    return plano?.isFixedPrice === true;
   };
 
   const handleSubmit = async () => {
     try {
       const qtdClientes = parseInt(quantidadeClientes) || 0;
+      const isFixed = isFixedPricePlan(selectedPlano);
 
       const validation = cadastroSchema.safeParse({
         razaoSocial,
@@ -104,7 +113,7 @@ const Planos = () => {
         email,
         whatsapp,
         plano: selectedPlano,
-        quantidadeClientes: qtdClientes,
+        quantidadeClientes: isFixed ? 1 : qtdClientes,
       });
 
       if (!validation.success) {
@@ -118,21 +127,25 @@ const Planos = () => {
         return;
       }
 
-      // Validate quantity against plan range
-      const range = getPlanoRange(selectedPlano);
-      if (qtdClientes < range.min) {
-        setResponseMessage({ type: 'error', message: "Quantidade de motos inferior ao plano selecionado" });
-        return;
-      }
-      if (qtdClientes > range.max) {
-        setResponseMessage({ type: 'error', message: "Quantidade de motos superior ao plano selecionado" });
-        return;
+      // Validate quantity against plan range (skip for fixed price plans)
+      if (!isFixed) {
+        const range = getPlanoRange(selectedPlano);
+        if (qtdClientes < range.min) {
+          setResponseMessage({ type: 'error', message: "Quantidade de motos inferior ao plano selecionado" });
+          return;
+        }
+        if (qtdClientes > range.max) {
+          setResponseMessage({ type: 'error', message: "Quantidade de motos superior ao plano selecionado" });
+          return;
+        }
       }
 
       setLoading(true);
 
       const planoSelecionado = planos.find((p) => p.id === selectedPlano);
-      const mensalidadeEstimada = qtdClientes * (planoSelecionado?.valorPorCliente || 0);
+      const mensalidadeEstimada = isFixed
+        ? planoSelecionado?.valorFixo || 0
+        : qtdClientes * (planoSelecionado?.valorPorCliente || 0);
 
       const payload = {
         razao_social: razaoSocial,
@@ -141,8 +154,8 @@ const Planos = () => {
         whatsapp: whatsapp.replace(/\D/g, ""),
         plano: planoSelecionado?.nome,
         plano_id: selectedPlano,
-        valor_por_moto: planoSelecionado?.valorPorCliente,
-        quantidade_motos: qtdClientes,
+        valor_por_moto: isFixed ? planoSelecionado?.valorFixo : planoSelecionado?.valorPorCliente,
+        quantidade_motos: isFixed ? 1 : qtdClientes,
         mensalidade_estimada: mensalidadeEstimada,
         faixa_motos: planoSelecionado?.faixa,
         timestamp: new Date().toISOString(),
@@ -289,8 +302,13 @@ const Planos = () => {
             >
               {plano.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full">
-                    Mais Popular
+                  <span className={cn(
+                    "text-xs font-semibold px-3 py-1 rounded-full",
+                    plano.isFixedPrice
+                      ? "bg-green-600 text-white"
+                      : "bg-primary text-primary-foreground"
+                  )}>
+                    {plano.isFixedPrice ? "Parceria Exclusiva" : "Mais Popular"}
                   </span>
                 </div>
               )}
@@ -313,9 +331,13 @@ const Planos = () => {
 
                 <div className="flex items-baseline gap-1">
                   <span className="text-3xl font-bold text-primary">
-                    R$ {plano.valorPorCliente.toFixed(2).replace(".", ",")}
+                    R$ {plano.isFixedPrice
+                      ? plano.valorFixo?.toFixed(2).replace(".", ",")
+                      : plano.valorPorCliente.toFixed(2).replace(".", ",")}
                   </span>
-                  <span className="text-muted-foreground text-sm">/cliente</span>
+                  <span className="text-muted-foreground text-sm">
+                    {plano.isFixedPrice ? "/mês" : "/cliente"}
+                  </span>
                 </div>
 
                 <div className="pt-4 border-t">
@@ -333,16 +355,27 @@ const Planos = () => {
           <div className="space-y-5">
             {/* Selected Plan Display */}
             {selectedPlano && (
-              <div className="bg-primary/10 rounded-lg p-4 mb-6">
+              <div className={cn(
+                "rounded-lg p-4 mb-6",
+                isFixedPricePlan(selectedPlano) ? "bg-green-600/10" : "bg-primary/10"
+              )}>
                 <p className="text-sm text-muted-foreground mb-1">Plano selecionado:</p>
                 <p className="font-semibold text-foreground">
                   {planos.find((p) => p.id === selectedPlano)?.nome} - R${" "}
-                  {planos.find((p) => p.id === selectedPlano)?.valorPorCliente.toFixed(2).replace(".", ",")}/cliente
+                  {isFixedPricePlan(selectedPlano)
+                    ? `${planos.find((p) => p.id === selectedPlano)?.valorFixo?.toFixed(2).replace(".", ",")}/mês`
+                    : `${planos.find((p) => p.id === selectedPlano)?.valorPorCliente.toFixed(2).replace(".", ",")}/cliente`}
                 </p>
-                {quantidadeClientes && parseInt(quantidadeClientes) > 0 && (
-                  <p className="text-sm text-primary mt-2">
-                    Mensalidade estimada: <strong>R$ {(parseInt(quantidadeClientes) * (planos.find((p) => p.id === selectedPlano)?.valorPorCliente || 0)).toFixed(2).replace(".", ",")}</strong>
+                {isFixedPricePlan(selectedPlano) ? (
+                  <p className="text-sm text-green-600 mt-2">
+                    Mensalidade fixa: <strong>R$ {planos.find((p) => p.id === selectedPlano)?.valorFixo?.toFixed(2).replace(".", ",")}</strong>
                   </p>
+                ) : (
+                  quantidadeClientes && parseInt(quantidadeClientes) > 0 && (
+                    <p className="text-sm text-primary mt-2">
+                      Mensalidade estimada: <strong>R$ {(parseInt(quantidadeClientes) * (planos.find((p) => p.id === selectedPlano)?.valorPorCliente || 0)).toFixed(2).replace(".", ",")}</strong>
+                    </p>
+                  )
                 )}
               </div>
             )}
@@ -400,7 +433,7 @@ const Planos = () => {
               />
             </div>
 
-            {selectedPlano && (
+            {selectedPlano && !isFixedPricePlan(selectedPlano) && (
               <div className="space-y-2">
                 <Label htmlFor="quantidadeClientes">Quantidade de Clientes</Label>
                 <Input
@@ -431,7 +464,7 @@ const Planos = () => {
 
             <Button
               onClick={handleSubmit}
-              disabled={loading || !selectedPlano || !quantidadeClientes || parseInt(quantidadeClientes) < 1}
+              disabled={loading || !selectedPlano || (!isFixedPricePlan(selectedPlano) && (!quantidadeClientes || parseInt(quantidadeClientes) < 1))}
               className="w-full h-12 text-lg font-semibold mt-4"
             >
               {loading ? (

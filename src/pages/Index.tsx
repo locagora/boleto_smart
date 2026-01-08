@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { BarChart3, Shield, Zap, TrendingUp, DollarSign } from "lucide-react";
+import { BarChart3, Shield, Zap, TrendingUp, DollarSign, QrCode, FileText, Eye, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { UserNav } from "@/components/UserNav";
 
@@ -139,6 +139,80 @@ const Index = () => {
               <strong className="text-primary text-lg">100%</strong> de visibilidade sobre quem pagou ou não
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* Seção Funcionalidades PIX e Boletos */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 bg-green-500/10 text-green-600 px-4 py-2 rounded-full text-sm font-medium mb-4">
+            <Eye className="h-4 w-4" />
+            Visualização completa
+          </div>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            PIX e Boletos em um só lugar
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Acompanhe todos os pagamentos da sua empresa em tempo real, seja por PIX ou boleto bancário
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          {/* Card PIX */}
+          <Card className="group relative overflow-hidden p-8 hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-green-500/30 bg-gradient-to-br from-card to-green-500/5">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="relative z-10">
+              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <QrCode className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-foreground mb-3">Pagamentos PIX</h3>
+              <p className="text-muted-foreground mb-6 leading-relaxed">
+                Visualize todos os pagamentos via PIX recebidos em tempo real com confirmação instantânea.
+              </p>
+              <ul className="space-y-3">
+                <li className="flex items-center gap-3 text-sm text-foreground">
+                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                  Confirmação instantânea de pagamento
+                </li>
+                <li className="flex items-center gap-3 text-sm text-foreground">
+                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                  Sincronização automática com Asaas
+                </li>
+                <li className="flex items-center gap-3 text-sm text-foreground">
+                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                  Histórico completo de transações
+                </li>
+              </ul>
+            </div>
+          </Card>
+
+          {/* Card Boletos */}
+          <Card className="group relative overflow-hidden p-8 hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-primary/30 bg-gradient-to-br from-card to-primary/5">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="relative z-10">
+              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <FileText className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-foreground mb-3">Boletos Bancários</h3>
+              <p className="text-muted-foreground mb-6 leading-relaxed">
+                Gerencie todos os boletos emitidos e acompanhe o status de cada um. Saiba quem pagou, quem está vencido e quem está pendente.
+              </p>
+              <ul className="space-y-3">
+                <li className="flex items-center gap-3 text-sm text-foreground">
+                  <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
+                  Status em tempo real (pago, vencido, pendente)
+                </li>
+                <li className="flex items-center gap-3 text-sm text-foreground">
+                  <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
+                  Emissão de 2ª via simplificada
+                </li>
+                <li className="flex items-center gap-3 text-sm text-foreground">
+                  <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
+                  Filtros por data e status
+                </li>
+              </ul>
+            </div>
+          </Card>
         </div>
       </section>
 
