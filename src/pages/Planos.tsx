@@ -173,20 +173,20 @@ const Planos = () => {
       );
 
       const responseData = await response.text();
-      
+
       // Check if response indicates success (case insensitive)
       const isSuccess = response.ok && responseData && (
-        responseData.toLowerCase().includes("sucesso") || 
+        responseData.toLowerCase().includes("sucesso") ||
         responseData.includes("Workflow was started")
       );
-      
+
       if (!isSuccess) {
         setResponseMessage({ type: 'error', message: responseData || "Erro ao processar cadastro. Verifique os dados e tente novamente." });
         return;
       }
 
       setResponseMessage({ type: 'success', message: responseData });
-      
+
       // Reset form
       setRazaoSocial("");
       setCnpj("");
@@ -232,13 +232,13 @@ const Planos = () => {
               "max-w-md w-full p-8 text-center animate-in fade-in zoom-in duration-300",
               responseMessage.type === 'success' ? "border-green-500" : "border-destructive"
             )}>
-              <button 
+              <button
                 onClick={() => setResponseMessage(null)}
                 className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
-              
+
               <div className={cn(
                 "mx-auto mb-4 h-16 w-16 rounded-full flex items-center justify-center",
                 responseMessage.type === 'success' ? "bg-green-500/10" : "bg-destructive/10"
@@ -249,19 +249,19 @@ const Planos = () => {
                   <AlertCircle className="h-8 w-8 text-destructive" />
                 )}
               </div>
-              
+
               <h3 className={cn(
                 "text-xl font-semibold mb-2",
                 responseMessage.type === 'success' ? "text-green-600" : "text-destructive"
               )}>
                 {responseMessage.type === 'success' ? "Sucesso!" : "Atenção"}
               </h3>
-              
+
               <p className="text-foreground text-lg mb-6">
                 {responseMessage.message}
               </p>
-              
-              <Button 
+
+              <Button
                 onClick={() => setResponseMessage(null)}
                 variant={responseMessage.type === 'success' ? "default" : "destructive"}
                 className={cn("w-full", responseMessage.type === 'success' && "bg-green-600 hover:bg-green-700")}
@@ -282,206 +282,277 @@ const Planos = () => {
           </p>
         </div>
 
-        {/* Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {planos.map((plano) => (
-            <Card
-              key={plano.id}
-              className={cn(
-                "relative p-6 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
-                selectedPlano === plano.id
-                  ? "ring-2 ring-primary bg-primary/5 border-primary"
-                  : "hover:border-primary/50",
-                plano.popular && "border-primary/30"
-              )}
-              onClick={() => {
-                setSelectedPlano(plano.id);
-                const range = getPlanoRange(plano.id);
-                setQuantidadeClientes(range.min.toString());
-              }}
-            >
-              {plano.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className={cn(
-                    "text-xs font-semibold px-3 py-1 rounded-full",
-                    plano.isFixedPrice
-                      ? "bg-green-600 text-white"
-                      : "bg-primary text-primary-foreground"
-                  )}>
-                    {plano.isFixedPrice ? "Parceria Exclusiva" : "Mais Popular"}
-                  </span>
-                </div>
-              )}
+        {/* Main Content - Form + Plans */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 items-start">
+          {/* Registration Form - Left Side */}
+          <Card className="p-8 h-fit lg:sticky lg:top-24">
+            <h2 className="text-2xl font-bold text-center mb-6">Finalize sua Compra</h2>
 
-              {selectedPlano === plano.id && (
-                <div className="absolute top-3 right-3">
-                  <div className="bg-primary text-primary-foreground rounded-full p-1">
-                    <Check className="h-4 w-4" />
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  <span className="text-sm">{plano.faixa}</span>
-                </div>
-
-                <h3 className="text-xl font-bold text-foreground">{plano.nome}</h3>
-
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-primary">
-                    R$ {plano.isFixedPrice
-                      ? plano.valorFixo?.toFixed(2).replace(".", ",")
-                      : plano.valorPorCliente.toFixed(2).replace(".", ",")}
-                  </span>
-                  <span className="text-muted-foreground text-sm">
-                    {plano.isFixedPrice ? "/mês" : "/cliente"}
-                  </span>
-                </div>
-
-                <div className="pt-4 border-t">
-                  <p className="text-sm text-foreground">{plano.indicado}</p>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Registration Form */}
-        <Card className="max-w-xl mx-auto p-8">
-          <h2 className="text-2xl font-bold text-center mb-6">Finalize sua Compra</h2>
-
-          <div className="space-y-5">
-            {/* Selected Plan Display */}
-            {selectedPlano && (
-              <div className={cn(
-                "rounded-lg p-4 mb-6",
-                isFixedPricePlan(selectedPlano) ? "bg-green-600/10" : "bg-primary/10"
-              )}>
-                <p className="text-sm text-muted-foreground mb-1">Plano selecionado:</p>
-                <p className="font-semibold text-foreground">
-                  {planos.find((p) => p.id === selectedPlano)?.nome} - R${" "}
-                  {isFixedPricePlan(selectedPlano)
-                    ? `${planos.find((p) => p.id === selectedPlano)?.valorFixo?.toFixed(2).replace(".", ",")}/mês`
-                    : `${planos.find((p) => p.id === selectedPlano)?.valorPorCliente.toFixed(2).replace(".", ",")}/cliente`}
-                </p>
-                {isFixedPricePlan(selectedPlano) ? (
-                  <p className="text-sm text-green-600 mt-2">
-                    Mensalidade fixa: <strong>R$ {planos.find((p) => p.id === selectedPlano)?.valorFixo?.toFixed(2).replace(".", ",")}</strong>
+            <div className="space-y-5">
+              {/* Selected Plan Display */}
+              {selectedPlano && (
+                <div className={cn(
+                  "rounded-lg p-4 mb-6",
+                  isFixedPricePlan(selectedPlano) ? "bg-green-600/10" : "bg-primary/10"
+                )}>
+                  <p className="text-sm text-muted-foreground mb-1">Plano selecionado:</p>
+                  <p className="font-semibold text-foreground">
+                    {planos.find((p) => p.id === selectedPlano)?.nome} - R${" "}
+                    {isFixedPricePlan(selectedPlano)
+                      ? `${planos.find((p) => p.id === selectedPlano)?.valorFixo?.toFixed(2).replace(".", ",")}/mês`
+                      : `${planos.find((p) => p.id === selectedPlano)?.valorPorCliente.toFixed(2).replace(".", ",")}/cliente`}
                   </p>
-                ) : (
-                  quantidadeClientes && parseInt(quantidadeClientes) > 0 && (
-                    <p className="text-sm text-primary mt-2">
-                      Mensalidade estimada: <strong>R$ {(parseInt(quantidadeClientes) * (planos.find((p) => p.id === selectedPlano)?.valorPorCliente || 0)).toFixed(2).replace(".", ",")}</strong>
+                  {isFixedPricePlan(selectedPlano) ? (
+                    <p className="text-sm text-green-600 mt-2">
+                      Mensalidade fixa: <strong>R$ {planos.find((p) => p.id === selectedPlano)?.valorFixo?.toFixed(2).replace(".", ",")}</strong>
                     </p>
-                  )
-                )}
-              </div>
-            )}
+                  ) : (
+                    quantidadeClientes && parseInt(quantidadeClientes) > 0 && (
+                      <p className="text-sm text-primary mt-2">
+                        Mensalidade estimada: <strong>R$ {(parseInt(quantidadeClientes) * (planos.find((p) => p.id === selectedPlano)?.valorPorCliente || 0)).toFixed(2).replace(".", ",")}</strong>
+                      </p>
+                    )
+                  )}
+                </div>
+              )}
 
-            {!selectedPlano && (
-              <div className="bg-muted rounded-lg p-4 mb-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Selecione um plano acima para continuar
-                </p>
-              </div>
-            )}
+              {!selectedPlano && (
+                <div className="bg-muted rounded-lg p-4 mb-6 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Selecione um plano ao lado para continuar
+                  </p>
+                </div>
+              )}
 
-            <div className="space-y-2">
-              <Label htmlFor="razaoSocial">Razão Social</Label>
-              <Input
-                id="razaoSocial"
-                placeholder="Nome da empresa"
-                value={razaoSocial}
-                onChange={(e) => setRazaoSocial(e.target.value)}
-                className="text-lg"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cnpj">CNPJ</Label>
-              <Input
-                id="cnpj"
-                placeholder="00.000.000/0000-00"
-                value={cnpj}
-                onChange={(e) => setCnpj(formatCNPJ(e.target.value))}
-                className="text-lg"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="text-lg"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="whatsapp">WhatsApp</Label>
-              <Input
-                id="whatsapp"
-                placeholder="(00) 00000-0000"
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(formatWhatsApp(e.target.value))}
-                className="text-lg"
-              />
-            </div>
-
-            {selectedPlano && !isFixedPricePlan(selectedPlano) && (
               <div className="space-y-2">
-                <Label htmlFor="quantidadeClientes">Quantidade de Clientes</Label>
+                <Label htmlFor="razaoSocial">Razão Social</Label>
                 <Input
-                  id="quantidadeClientes"
-                  type="number"
-                  min={getPlanoRange(selectedPlano).min}
-                  max={getPlanoRange(selectedPlano).max === Infinity ? undefined : getPlanoRange(selectedPlano).max}
-                  placeholder="Informe a quantidade de clientes"
-                  value={quantidadeClientes}
-                  onChange={(e) => setQuantidadeClientes(e.target.value)}
-                  onBlur={() => {
-                    const value = parseInt(quantidadeClientes) || 0;
-                    const range = getPlanoRange(selectedPlano);
-                    if (value < range.min) {
-                      setQuantidadeClientes(range.min.toString());
-                    } else if (range.max !== Infinity && value > range.max) {
-                      setQuantidadeClientes(range.max.toString());
-                    }
-                  }}
+                  id="razaoSocial"
+                  placeholder="Nome da empresa"
+                  value={razaoSocial}
+                  onChange={(e) => setRazaoSocial(e.target.value)}
                   className="text-lg"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Mínimo: {getPlanoRange(selectedPlano).min} clientes
-                  {getPlanoRange(selectedPlano).max !== Infinity && ` | Máximo: ${getPlanoRange(selectedPlano).max} clientes`}
-                </p>
               </div>
-            )}
 
-            <Button
-              onClick={handleSubmit}
-              disabled={loading || !selectedPlano || (!isFixedPricePlan(selectedPlano) && (!quantidadeClientes || parseInt(quantidadeClientes) < 1))}
-              className="w-full h-12 text-lg font-semibold mt-4"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Processando...
-                </>
-              ) : (
-                "Comprar Agora"
+              <div className="space-y-2">
+                <Label htmlFor="cnpj">CNPJ</Label>
+                <Input
+                  id="cnpj"
+                  placeholder="00.000.000/0000-00"
+                  value={cnpj}
+                  onChange={(e) => setCnpj(formatCNPJ(e.target.value))}
+                  className="text-lg"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="text-lg"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp">WhatsApp</Label>
+                <Input
+                  id="whatsapp"
+                  placeholder="(00) 00000-0000"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(formatWhatsApp(e.target.value))}
+                  className="text-lg"
+                />
+              </div>
+
+              {selectedPlano && !isFixedPricePlan(selectedPlano) && (
+                <div className="space-y-2">
+                  <Label htmlFor="quantidadeClientes">Quantidade de Clientes</Label>
+                  <Input
+                    id="quantidadeClientes"
+                    type="number"
+                    min={getPlanoRange(selectedPlano).min}
+                    max={getPlanoRange(selectedPlano).max === Infinity ? undefined : getPlanoRange(selectedPlano).max}
+                    placeholder="Informe a quantidade de clientes"
+                    value={quantidadeClientes}
+                    onChange={(e) => setQuantidadeClientes(e.target.value)}
+                    onBlur={() => {
+                      const value = parseInt(quantidadeClientes) || 0;
+                      const range = getPlanoRange(selectedPlano);
+                      if (value < range.min) {
+                        setQuantidadeClientes(range.min.toString());
+                      } else if (range.max !== Infinity && value > range.max) {
+                        setQuantidadeClientes(range.max.toString());
+                      }
+                    }}
+                    className="text-lg"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Mínimo: {getPlanoRange(selectedPlano).min} clientes
+                    {getPlanoRange(selectedPlano).max !== Infinity && ` | Máximo: ${getPlanoRange(selectedPlano).max} clientes`}
+                  </p>
+                </div>
               )}
-            </Button>
 
-            <p className="text-xs text-center text-muted-foreground mt-4">
-              Ao continuar, você concorda com nossos termos de uso e política de privacidade.
-            </p>
+              <Button
+                onClick={handleSubmit}
+                disabled={loading || !selectedPlano || (!isFixedPricePlan(selectedPlano) && (!quantidadeClientes || parseInt(quantidadeClientes) < 1))}
+                className="w-full h-12 text-lg font-semibold mt-4"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  "Comprar Agora"
+                )}
+              </Button>
+
+              <p className="text-xs text-center text-muted-foreground mt-4">
+                Ao continuar, você concorda com nossos termos de uso e política de privacidade.
+              </p>
+            </div>
+          </Card>
+
+          {/* Plans Grid - Right Side */}
+          <div className="lg:col-span-2 flex flex-col gap-6">
+            {/* Plano Locagora - Full Width */}
+            {planos.filter(p => p.isFixedPrice).map((plano) => (
+              <Card
+                key={plano.id}
+                className={cn(
+                  "relative p-6 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-2",
+                  selectedPlano === plano.id
+                    ? "ring-2 ring-green-600 bg-green-600/5 border-green-600"
+                    : "hover:border-green-500/50 border-green-500/30"
+                )}
+                onClick={() => {
+                  setSelectedPlano(plano.id);
+                  const range = getPlanoRange(plano.id);
+                  setQuantidadeClientes(range.min.toString());
+                }}
+              >
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                    Parceria Exclusiva
+                  </span>
+                </div>
+
+                {selectedPlano === plano.id && (
+                  <div className="absolute top-3 right-3">
+                    <div className="bg-green-600 text-white rounded-full p-1">
+                      <Check className="h-4 w-4" />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-4 text-center">
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Users className="h-4 w-4" />
+                    <span className="text-sm">{plano.faixa}</span>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-foreground">{plano.nome}</h3>
+
+                  <div className="flex items-baseline justify-center gap-1">
+                    <span className="text-3xl font-bold text-green-600">
+                      R$ {plano.valorFixo?.toFixed(2).replace(".", ",")}
+                    </span>
+                    <span className="text-muted-foreground text-sm">/mês</span>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-foreground">{plano.indicado}</p>
+                  </div>
+
+                  <div className="pt-4 space-y-2 inline-block text-left">
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      <span><strong>Clientes ilimitados</strong></span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      <span>Visualização PIX e Boletos</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      <span>Visualização de cobranças vencidas</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      <span>2ª via solicitada pelo locatário</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      <span>Cobrança via WhatsApp</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      <span>Integração com Asaas</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      <span>Suporte prioritário</span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+
+            {/* Outros Planos - 3 colunas: Essencial | Profissional | Avançado */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {planos.filter(p => !p.isFixedPrice).map((plano) => (
+                <Card
+                key={plano.id}
+                className={cn(
+                  "relative p-6 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
+                  selectedPlano === plano.id
+                    ? "ring-2 ring-primary bg-primary/5 border-primary"
+                    : "hover:border-primary/50"
+                )}
+                onClick={() => {
+                  setSelectedPlano(plano.id);
+                  const range = getPlanoRange(plano.id);
+                  setQuantidadeClientes(range.min.toString());
+                }}
+              >
+                {selectedPlano === plano.id && (
+                  <div className="absolute top-3 right-3">
+                    <div className="bg-primary text-primary-foreground rounded-full p-1">
+                      <Check className="h-4 w-4" />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Users className="h-4 w-4" />
+                    <span className="text-sm">{plano.faixa}</span>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-foreground">{plano.nome}</h3>
+
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold text-primary">
+                      R$ {plano.valorPorCliente.toFixed(2).replace(".", ",")}
+                    </span>
+                    <span className="text-muted-foreground text-sm">/cliente</span>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-foreground">{plano.indicado}</p>
+                  </div>
+                </div>
+                </Card>
+              ))}
+            </div>
           </div>
-        </Card>
+        </div>
 
         {/* Features Section */}
         <div className="mt-16 grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
