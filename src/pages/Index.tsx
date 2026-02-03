@@ -1,26 +1,10 @@
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BarChart3, Shield, Zap, TrendingUp, DollarSign, QrCode, FileText, Eye, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { UserNav } from "@/components/UserNav";
 
-const carouselImages = [
-  "https://i.postimg.cc/J4pDhtyc/image.png",
-  "https://i.postimg.cc/1RJ5G293/image.png",
-  "https://i.postimg.cc/85cXq76P/image.png",
-];
-
 const Index = () => {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % carouselImages.length);
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
@@ -64,44 +48,29 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Right side - Dashboard Screenshot Carousel */}
+          {/* Right side - Video */}
           <div className="relative hidden lg:block mt-16">
-            <div className="relative overflow-hidden rounded-xl">
-              {carouselImages.map((src, index) => (
-                <img
-                  key={index}
-                  src={src}
-                  alt={`Dashboard de cobranças - Imagem ${index + 1}`}
-                  className={`w-full rounded-xl shadow-2xl border-2 border-muted transition-all duration-700 ${
-                    index === currentImageIndex
-                      ? "opacity-100 scale-100"
-                      : "opacity-0 scale-95 absolute inset-0"
-                  }`}
+            <div className="relative overflow-hidden rounded-xl shadow-2xl border-2 border-muted">
+              <div style={{ padding: "56.25% 0 0 0", position: "relative" }}>
+                <iframe
+                  src="https://player.vimeo.com/video/1161537449?autoplay=0&loop=1"
+                  style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+                  frameBorder="0"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                  title="BoletoSmart Demo"
                 />
-              ))}
-              {/* Overlay gradient */}
-              <div className="absolute inset-0 bg-gradient-to-t from-background/20 to-transparent rounded-xl pointer-events-none" />
-
-              {/* Live indicator */}
-              <div className="absolute top-4 right-4 bg-card/90 backdrop-blur-sm shadow-lg rounded-full px-3 py-1.5 border flex items-center gap-2">
-                <span className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></span>
-                <span className="text-xs text-green-600 font-medium">Ao vivo</span>
               </div>
+            </div>
 
-              {/* Carousel indicators */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                {carouselImages.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentImageIndex(index)}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      index === currentImageIndex
-                        ? "w-6 bg-primary"
-                        : "w-2 bg-white/50 hover:bg-white/80"
-                    }`}
-                  />
-                ))}
-              </div>
+            {/* Video CTA */}
+            <div className="mt-4 text-center">
+              <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary/10">
+                  <Zap className="h-3 w-3 text-primary" />
+                </span>
+                <span>Clique no <strong className="text-primary">play</strong> e descubra em <strong className="text-primary">1 minuto</strong> como funciona</span>
+              </p>
             </div>
 
             {/* Floating notification */}
