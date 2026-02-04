@@ -49,7 +49,7 @@ const Index = () => {
           </div>
 
           {/* Right side - Video */}
-          <div className="relative hidden lg:block mt-16">
+          <div className="relative mt-8 lg:mt-16">
             <div className="relative overflow-hidden rounded-xl shadow-2xl border-2 border-muted">
               <div style={{ padding: "56.25% 0 0 0", position: "relative" }}>
                 <iframe
