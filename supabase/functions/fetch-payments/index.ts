@@ -71,8 +71,6 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    console.log('User authenticated:', user.id)
-
     // Check user role (super_admin, master_regional, or franquia)
     const { data: userRoles, error: roleError } = await supabaseClient
       .from('user_roles')
@@ -80,7 +78,7 @@ Deno.serve(async (req) => {
       .eq('user_id', user.id)
 
     if (roleError) {
-      console.error('Error checking role:', roleError)
+      console.error('Error checking user role')
       throw new Error('Error verifying user role')
     }
 
@@ -89,8 +87,6 @@ Deno.serve(async (req) => {
     }
 
     const roles = userRoles.map(r => r.role)
-    console.log('User roles:', roles)
-    console.log('User email:', user.email)
 
     let franquiaId: string | null = null
     let webhookUrl: string
@@ -105,20 +101,17 @@ Deno.serve(async (req) => {
       }
     } catch (e) {
       // No body or invalid JSON, that's okay
-      console.log('No body or invalid JSON in request')
     }
 
     // If franquiaNome is provided, use that for any role that has access
     if (franquiaNome) {
-      console.log('Specific franchise requested:', franquiaNome)
-      
       // Get franchise data - try exact match first, then ilike
       let franquiaResult = await supabaseClient
         .from('franquias')
         .select('id, nome, webhook, master_regional_id')
         .eq('nome', franquiaNome)
         .maybeSingle()
-      
+
       // If no exact match, try ilike
       if (!franquiaResult.data) {
         franquiaResult = await supabaseClient
@@ -127,17 +120,16 @@ Deno.serve(async (req) => {
           .ilike('nome', `%${franquiaNome}%`)
           .maybeSingle()
       }
-      
+
       const franquia = franquiaResult.data
-      
+
       if (!franquia) {
-        console.error('Franchise not found:', franquiaNome)
-        throw new Error('Franchise not found: ' + franquiaNome)
+        throw new Error('Franchise not found')
       }
-      
+
       // Verify the user has access to this franchise
       let hasAccess = false
-      
+
       if (roles.includes('super_admin')) {
         hasAccess = true
       } else if (roles.includes('master_regional')) {
@@ -147,7 +139,7 @@ Deno.serve(async (req) => {
           .select('id')
           .eq('email', user.email)
           .single()
-        
+
         if (masterRegional && franquia.master_regional_id === masterRegional.id) {
           hasAccess = true
         }
@@ -158,19 +150,18 @@ Deno.serve(async (req) => {
           .select('id')
           .eq('email', user.email)
           .single()
-        
+
         if (userFranquia && userFranquia.id === franquia.id) {
           hasAccess = true
         }
       }
-      
+
       if (!hasAccess) {
-        throw new Error('User does not have access to franchise: ' + franquiaNome)
+        throw new Error('User does not have access to this franchise')
       }
-      
+
       franquiaId = franquia.id
-      console.log('Found franchise:', franquia.nome, 'Webhook configured:', franquia.webhook)
-      
+
       if (franquia.webhook) {
         webhookUrl = franquia.webhook
       } else {
@@ -179,11 +170,9 @@ Deno.serve(async (req) => {
         const firstName = cleanName.split(' ')[0].toLowerCase()
         webhookUrl = `https://web.strategy-ia.art/webhook/vencidos_${firstName}`
       }
-      console.log('Using franchise:', franquia.nome, 'ID:', franquiaId, 'Webhook:', webhookUrl)
     }
     // No specific franchise requested - use default logic based on role
     else if (roles.includes('franquia')) {
-      console.log('Processing as franquia user (no specific franchise)')
       const { data: franquia, error: franquiaError } = await supabaseClient
         .from('franquias')
         .select('id, nome, email, webhook')
@@ -191,12 +180,12 @@ Deno.serve(async (req) => {
         .single()
 
       if (franquiaError) {
-        console.error('Error fetching franchise:', franquiaError)
-        throw new Error('Franchise not found for user email: ' + user.email)
+        console.error('Error fetching franchise for user')
+        throw new Error('Franchise not found for user')
       }
 
       if (!franquia) {
-        throw new Error('No franchise found for user email: ' + user.email)
+        throw new Error('No franchise found for user')
       }
 
       franquiaId = franquia.id
@@ -206,11 +195,9 @@ Deno.serve(async (req) => {
         const firstName = franquia.nome.split(' ')[0].toLowerCase()
         webhookUrl = `https://web.strategy-ia.art/webhook/vencidos_${firstName}`
       }
-      console.log('Franchise user:', franquia.nome, 'ID:', franquiaId, 'Webhook:', webhookUrl)
     }
     // If master_regional role and NOT franquia (and no specific franchise was provided)
     else if (roles.includes('master_regional')) {
-      console.log('Processing as master_regional user (no specific franchise)')
       const { data: masterRegional, error: masterError } = await supabaseClient
         .from('master_regionais')
         .select('id, nome, email')
@@ -218,11 +205,9 @@ Deno.serve(async (req) => {
         .single()
 
       if (masterError || !masterRegional) {
-        console.error('Error fetching master regional:', masterError)
-        throw new Error('Master regional not found for user email: ' + user.email)
+        console.error('Error fetching master regional')
+        throw new Error('Master regional not found for user')
       }
-
-      console.log('Master regional found:', masterRegional.nome, 'ID:', masterRegional.id)
 
       // First, check if master regional has their own franchise (same email)
       const { data: ownFranquia } = await supabaseClient
@@ -232,7 +217,6 @@ Deno.serve(async (req) => {
         .maybeSingle()
 
       if (ownFranquia) {
-        console.log('Master regional has own franchise:', ownFranquia.nome, 'ID:', ownFranquia.id)
         franquiaId = ownFranquia.id
         if (ownFranquia.webhook) {
           webhookUrl = ownFranquia.webhook
@@ -242,7 +226,6 @@ Deno.serve(async (req) => {
           webhookUrl = `https://web.strategy-ia.art/webhook/vencidos_${firstName}`
         }
       } else {
-        console.log('Master regional does not have own franchise, checking associated franchises')
         // If no own franchise, get franchises under their management
         const { data: franquias, error: franquiasError } = await supabaseClient
           .from('franquias')
@@ -250,15 +233,13 @@ Deno.serve(async (req) => {
           .eq('master_regional_id', masterRegional.id)
           .limit(1)
 
-        console.log('Franchises found for master regional:', franquias?.length || 0)
-
         if (franquiasError) {
-          console.error('Error fetching franchises:', franquiasError)
+          console.error('Error fetching franchises for master regional')
           throw new Error('Error fetching franchises for master regional')
         }
 
         if (!franquias || franquias.length === 0) {
-          throw new Error('No franchises found for this master regional: ' + masterRegional.nome + '. Please register a franchise first.')
+          throw new Error('No franchises found for this master regional. Please register a franchise first.')
         }
 
         franquiaId = franquias[0].id
@@ -269,16 +250,13 @@ Deno.serve(async (req) => {
           const firstName = cleanName.split(' ')[0].toLowerCase()
           webhookUrl = `https://web.strategy-ia.art/webhook/vencidos_${firstName}`
         }
-        console.log('Master regional user, using managed franchise:', franquias[0].nome, 'ID:', franquiaId)
       }
     }
     // If super admin only (without specific franchise - this shouldn't happen normally)
     else if (roles.includes('super_admin')) {
-      console.log('Processing as super_admin user without specific franchise')
       throw new Error('Super admin must specify franchise name')
     }
     else {
-      console.error('User does not have required role. Roles:', roles)
       throw new Error('User does not have required role (franquia, master_regional, or super_admin)')
     }
 
@@ -286,12 +264,10 @@ Deno.serve(async (req) => {
       throw new Error('Could not determine franchise ID')
     }
 
-    console.log('Calling webhook:', webhookUrl)
-
     // Call the webhook
     let webhookResponse: Response | null = null
     let webhookFailed = false
-    
+
     try {
       webhookResponse = await fetch(webhookUrl, {
         method: 'POST',
@@ -301,18 +277,14 @@ Deno.serve(async (req) => {
       })
 
       if (!webhookResponse.ok) {
-        console.warn('Webhook returned status:', webhookResponse.status, '- falling back to database data')
         webhookFailed = true
       }
     } catch (fetchError) {
-      console.warn('Webhook fetch failed:', fetchError, '- falling back to database data')
       webhookFailed = true
     }
 
     // If webhook failed (404, network error, etc.), return existing database data
     if (webhookFailed) {
-      console.log('Webhook unavailable - returning existing database data for franchise:', franquiaId)
-      
       const { data: payments, error: paymentsError } = await supabaseClient
         .from('payments')
         .select('*')
@@ -327,8 +299,6 @@ Deno.serve(async (req) => {
         .eq('franquia_id', franquiaId)
 
       if (customersError) throw customersError
-
-      console.log(`Returning ${payments?.length || 0} existing payments for franchise ${franquiaId}`)
 
       return new Response(
         JSON.stringify({
@@ -352,33 +322,24 @@ Deno.serve(async (req) => {
     let webhookData: any = null
     try {
       const responseText = await webhookResponse!.text()
-      console.log('Webhook response text length:', responseText?.length || 0)
       if (responseText && responseText.trim()) {
         webhookData = JSON.parse(responseText)
       }
     } catch (parseError) {
-      console.error('Error parsing webhook response:', parseError)
+      console.error('Error parsing webhook response')
       webhookData = null
-    }
-    
-    console.log('Webhook response received')
-    console.log('Response type:', typeof webhookData)
-    console.log('Is array:', Array.isArray(webhookData))
-    console.log('Length:', webhookData?.length)
-    if (webhookData) {
-      console.log('Response preview:', JSON.stringify(webhookData).substring(0, 500))
     }
 
     let paymentsData: Payment[] = []
     let customersData: Customer[] = []
-    
+
     // Handle empty array or null response - this is valid (no overdue payments)
     if (!webhookData || (Array.isArray(webhookData) && webhookData.length === 0)) {
-      console.log('Webhook returned empty data - no overdue payments found')
-      // Return existing data from database instead of throwing error
+      // Return existing data from database filtered by franchise
       const { data: payments, error: paymentsError } = await supabaseClient
         .from('payments')
         .select('*')
+        .eq('franquia_id', franquiaId)
         .order('due_date', { ascending: false })
 
       if (paymentsError) throw paymentsError
@@ -386,6 +347,7 @@ Deno.serve(async (req) => {
       const { data: customers, error: customersError } = await supabaseClient
         .from('customers')
         .select('*')
+        .eq('franquia_id', franquiaId)
 
       if (customersError) throw customersError
 
@@ -406,17 +368,14 @@ Deno.serve(async (req) => {
         }
       )
     }
-    
+
     if (Array.isArray(webhookData) && webhookData.length > 0) {
       const firstElement = webhookData[0]
-      console.log('First element keys:', Object.keys(firstElement || {}))
-      console.log('First element object type:', firstElement?.object)
-      
+
       // Check if it's the new format: direct array of payments with embedded customer data
       if (firstElement?.object === 'payment') {
-        console.log('Processing direct payment array format with embedded customer data')
         paymentsData = webhookData
-        
+
         // Extract unique customer data from payments
         const customersMap = new Map<string, Customer>()
         webhookData.forEach((payment: any) => {
@@ -436,23 +395,19 @@ Deno.serve(async (req) => {
           }
         })
         customersData = Array.from(customersMap.values())
-        console.log('Extracted', paymentsData.length, 'payments and', customersData.length, 'unique customers')
       }
       // Check for old format: [{ object: "list", data: [...] }]
       else if (firstElement?.object === 'list' && Array.isArray(firstElement?.data)) {
         paymentsData = firstElement.data
-        console.log('Extracted', paymentsData.length, 'payments from list format')
-        
+
         if (webhookData.length > 1 && webhookData[1]?.object === 'list' && Array.isArray(webhookData[1]?.data)) {
           customersData = webhookData[1].data
-          console.log('Extracted', customersData.length, 'customers from list format')
         }
       }
       // Try to detect other formats
       else if (firstElement?.id && firstElement?.dueDate && firstElement?.value !== undefined) {
-        console.log('Detected payment-like objects without object field')
         paymentsData = webhookData
-        
+
         // Extract customer data
         const customersMap = new Map<string, Customer>()
         webhookData.forEach((payment: any) => {
@@ -473,15 +428,13 @@ Deno.serve(async (req) => {
           }
         })
         customersData = Array.from(customersMap.values())
-        console.log('Extracted', paymentsData.length, 'payments and', customersData.length, 'unique customers from detected format')
       }
       else {
-        console.error('Unknown webhook response format. First element:', JSON.stringify(firstElement).substring(0, 300))
+        console.error('Unknown webhook response format')
       }
     }
 
     if (paymentsData.length === 0) {
-      console.log('No payments found in webhook response - returning existing data for franchise:', franquiaId)
       // Return existing data from database for this specific franchise
       const { data: payments, error: paymentsError } = await supabaseClient
         .from('payments')
@@ -497,8 +450,6 @@ Deno.serve(async (req) => {
         .eq('franquia_id', franquiaId)
 
       if (customersError) throw customersError
-
-      console.log(`Returning ${payments?.length || 0} existing payments for franchise ${franquiaId}`)
 
       return new Response(
         JSON.stringify({
@@ -517,8 +468,6 @@ Deno.serve(async (req) => {
         }
       )
     }
-
-    console.log(`Processing ${paymentsData.length} payments and ${customersData.length} customers`)
 
     // Create a Set to track unique customer IDs we need
     const uniqueCustomerIds = new Set<string>()
@@ -551,7 +500,7 @@ Deno.serve(async (req) => {
         })
 
       if (customerError) {
-        console.error('Error upserting customer:', customer.id, customerError)
+        console.error('Error upserting customer')
       }
       uniqueCustomerIds.delete(customer.id)
     }
@@ -576,11 +525,9 @@ Deno.serve(async (req) => {
         })
 
       if (customerError) {
-        console.error('Error creating placeholder customer:', customerId, customerError)
+        console.error('Error creating placeholder customer')
       }
     }
-
-    console.log(`Processed ${customersData.length} customers with data, created ${uniqueCustomerIds.size} placeholders`)
 
     // Upsert payments and associate with franchise
     let successfulPayments = 0
@@ -609,7 +556,7 @@ Deno.serve(async (req) => {
         franquia_id: franquiaId,
         updated_at: new Date().toISOString(),
       }
-      
+
       const { error: paymentError } = await supabaseClient
         .from('payments')
         .upsert(paymentData, {
@@ -617,15 +564,12 @@ Deno.serve(async (req) => {
         })
 
       if (paymentError) {
-        console.error('Error upserting payment:', payment.id, 'Error:', JSON.stringify(paymentError))
+        console.error('Error upserting payment')
         failedPayments++
       } else {
         successfulPayments++
       }
     }
-
-    console.log(`Processed ${paymentsData.length} payments: ${successfulPayments} successful, ${failedPayments} failed`)
-    console.log(`Franchise ID used for upsert: ${franquiaId}`)
 
     // Fetch updated data from database for this specific franchise
     const { data: payments, error: paymentsError } = await supabaseClient
@@ -647,8 +591,6 @@ Deno.serve(async (req) => {
       throw customersError
     }
 
-    console.log(`Returning ${payments?.length || 0} payments for franchise ${franquiaId}`)
-
     return new Response(
       JSON.stringify({
         success: true,
@@ -665,7 +607,7 @@ Deno.serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error in fetch-payments function:', error)
+    console.error('fetch-payments error')
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return new Response(
       JSON.stringify({
