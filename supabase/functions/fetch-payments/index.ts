@@ -133,25 +133,27 @@ Deno.serve(async (req) => {
       if (roles.includes('super_admin')) {
         hasAccess = true
       } else if (roles.includes('master_regional')) {
-        // Check if this franchise belongs to the master regional
-        const { data: masterRegional } = await supabaseClient
-          .from('master_regionais')
-          .select('id')
-          .eq('email', user.email)
-          .single()
+        // Check if this franchise belongs to the master regional via user_entities
+        const { data: userEntities } = await supabaseClient
+          .from('user_entities')
+          .select('entity_id')
+          .eq('user_id', user.id)
+          .eq('entity_type', 'master_regional')
 
-        if (masterRegional && franquia.master_regional_id === masterRegional.id) {
+        const masterIds = (userEntities || []).map((ue: any) => ue.entity_id)
+        if (masterIds.length > 0 && masterIds.includes(franquia.master_regional_id)) {
           hasAccess = true
         }
       } else if (roles.includes('franquia')) {
-        // Check if this is the user's own franchise
-        const { data: userFranquia } = await supabaseClient
-          .from('franquias')
-          .select('id')
-          .eq('email', user.email)
-          .single()
+        // Check if this is the user's own franchise via user_entities
+        const { data: userEntities } = await supabaseClient
+          .from('user_entities')
+          .select('entity_id')
+          .eq('user_id', user.id)
+          .eq('entity_type', 'franquia')
 
-        if (userFranquia && userFranquia.id === franquia.id) {
+        const franquiaIds = (userEntities || []).map((ue: any) => ue.entity_id)
+        if (franquiaIds.includes(franquia.id)) {
           hasAccess = true
         }
       }
@@ -173,83 +175,100 @@ Deno.serve(async (req) => {
     }
     // No specific franchise requested - use default logic based on role
     else if (roles.includes('franquia')) {
-      const { data: franquia, error: franquiaError } = await supabaseClient
-        .from('franquias')
-        .select('id, nome, email, webhook')
-        .eq('email', user.email)
-        .single()
+      // Get franchise via user_entities table
+      const { data: userEntities } = await supabaseClient
+        .from('user_entities')
+        .select('entity_id')
+        .eq('user_id', user.id)
+        .eq('entity_type', 'franquia')
 
-      if (franquiaError) {
-        console.error('Error fetching franchise for user')
+      let franquiaFound: any = null
+
+      if (userEntities && userEntities.length > 0) {
+        const { data: franquiaData } = await supabaseClient
+          .from('franquias')
+          .select('id, nome, email, webhook')
+          .eq('id', (userEntities[0] as any).entity_id)
+          .single()
+        franquiaFound = franquiaData
+      }
+
+      // Fallback: try email match for backwards compatibility
+      if (!franquiaFound) {
+        const { data: franquiaByEmail } = await supabaseClient
+          .from('franquias')
+          .select('id, nome, email, webhook')
+          .eq('email', user.email)
+          .maybeSingle()
+        franquiaFound = franquiaByEmail
+      }
+
+      if (!franquiaFound) {
         throw new Error('Franchise not found for user')
       }
 
-      if (!franquia) {
-        throw new Error('No franchise found for user')
-      }
-
-      franquiaId = franquia.id
-      if (franquia.webhook) {
-        webhookUrl = franquia.webhook
+      franquiaId = franquiaFound.id
+      if (franquiaFound.webhook) {
+        webhookUrl = franquiaFound.webhook
       } else {
-        const firstName = franquia.nome.split(' ')[0].toLowerCase()
+        const firstName = franquiaFound.nome.split(' ')[0].toLowerCase()
         webhookUrl = `https://web.strategy-ia.art/webhook/vencidos_${firstName}`
       }
     }
     // If master_regional role and NOT franquia (and no specific franchise was provided)
     else if (roles.includes('master_regional')) {
-      const { data: masterRegional, error: masterError } = await supabaseClient
-        .from('master_regionais')
-        .select('id, nome, email')
-        .eq('email', user.email)
-        .single()
+      // Get master_regional via user_entities table
+      const { data: userEntities } = await supabaseClient
+        .from('user_entities')
+        .select('entity_id')
+        .eq('user_id', user.id)
+        .eq('entity_type', 'master_regional')
 
-      if (masterError || !masterRegional) {
-        console.error('Error fetching master regional')
+      let masterRegionalId: string | null = null
+
+      if (userEntities && userEntities.length > 0) {
+        masterRegionalId = (userEntities[0] as any).entity_id
+      }
+
+      // Fallback: try email match for backwards compatibility
+      if (!masterRegionalId) {
+        const { data: masterByEmail } = await supabaseClient
+          .from('master_regionais')
+          .select('id')
+          .eq('email', user.email)
+          .maybeSingle()
+
+        if (masterByEmail) {
+          masterRegionalId = masterByEmail.id
+        }
+      }
+
+      if (!masterRegionalId) {
         throw new Error('Master regional not found for user')
       }
 
-      // First, check if master regional has their own franchise (same email)
-      const { data: ownFranquia } = await supabaseClient
+      // Get franchises under their management
+      const { data: franquias, error: franquiasError } = await supabaseClient
         .from('franquias')
         .select('id, nome, webhook')
-        .eq('email', user.email)
-        .maybeSingle()
+        .eq('master_regional_id', masterRegionalId)
+        .limit(1)
 
-      if (ownFranquia) {
-        franquiaId = ownFranquia.id
-        if (ownFranquia.webhook) {
-          webhookUrl = ownFranquia.webhook
-        } else {
-          const cleanName = ownFranquia.nome.replace(/^Franquia:\s*/i, '')
-          const firstName = cleanName.split(' ')[0].toLowerCase()
-          webhookUrl = `https://web.strategy-ia.art/webhook/vencidos_${firstName}`
-        }
+      if (franquiasError) {
+        throw new Error('Error fetching franchises for master regional')
+      }
+
+      if (!franquias || franquias.length === 0) {
+        throw new Error('No franchises found for this master regional. Please register a franchise first.')
+      }
+
+      franquiaId = franquias[0].id
+      if (franquias[0].webhook) {
+        webhookUrl = franquias[0].webhook
       } else {
-        // If no own franchise, get franchises under their management
-        const { data: franquias, error: franquiasError } = await supabaseClient
-          .from('franquias')
-          .select('id, nome, webhook')
-          .eq('master_regional_id', masterRegional.id)
-          .limit(1)
-
-        if (franquiasError) {
-          console.error('Error fetching franchises for master regional')
-          throw new Error('Error fetching franchises for master regional')
-        }
-
-        if (!franquias || franquias.length === 0) {
-          throw new Error('No franchises found for this master regional. Please register a franchise first.')
-        }
-
-        franquiaId = franquias[0].id
-        if (franquias[0].webhook) {
-          webhookUrl = franquias[0].webhook
-        } else {
-          const cleanName = franquias[0].nome.replace(/^Franquia:\s*/i, '')
-          const firstName = cleanName.split(' ')[0].toLowerCase()
-          webhookUrl = `https://web.strategy-ia.art/webhook/vencidos_${firstName}`
-        }
+        const cleanName = franquias[0].nome.replace(/^Franquia:\s*/i, '')
+        const firstName = cleanName.split(' ')[0].toLowerCase()
+        webhookUrl = `https://web.strategy-ia.art/webhook/vencidos_${firstName}`
       }
     }
     // If super admin only (without specific franchise - this shouldn't happen normally)
