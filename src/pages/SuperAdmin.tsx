@@ -40,6 +40,13 @@ import { toast } from "sonner";
 import { Building2, Store, Pencil, Trash2, Users, ArrowLeft, CheckCircle, XCircle, Clock, UserPlus, MoreHorizontal, Key, UserX, Mail, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function SuperAdmin() {
   const navigate = useNavigate();
@@ -50,6 +57,7 @@ export default function SuperAdmin() {
   const [usersWithRoles, setUsersWithRoles] = useState<any[]>([]);
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   const [franquiaFilter, setFranquiaFilter] = useState("");
+  const [franquiaStatusFilter, setFranquiaStatusFilter] = useState<"all" | "ativa" | "inativa">("all");
 
   // Edit states
   const [editingMaster, setEditingMaster] = useState<any>(null);
@@ -664,14 +672,29 @@ export default function SuperAdmin() {
               </CardHeader>
               <CardContent>
                 {/* Filtro de Franquias */}
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Filtrar por nome, CNPJ ou email..."
-                    value={franquiaFilter}
-                    onChange={(e) => setFranquiaFilter(e.target.value)}
-                    className="pl-10"
-                  />
+                <div className="flex gap-3 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Filtrar por nome, CNPJ ou email..."
+                      value={franquiaFilter}
+                      onChange={(e) => setFranquiaFilter(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Select
+                    value={franquiaStatusFilter}
+                    onValueChange={(value: "all" | "ativa" | "inativa") => setFranquiaStatusFilter(value)}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas</SelectItem>
+                      <SelectItem value="ativa">Ativas</SelectItem>
+                      <SelectItem value="inativa">Aguardando Pagamento</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="overflow-auto max-h-[500px]">
                   <Table>
@@ -688,6 +711,8 @@ export default function SuperAdmin() {
                     </TableHeader>
                     <TableBody>
                       {franquias.filter((f) => {
+                        if (franquiaStatusFilter === "ativa" && !f.ativo) return false;
+                        if (franquiaStatusFilter === "inativa" && f.ativo) return false;
                         if (!franquiaFilter) return true;
                         const filter = franquiaFilter.toLowerCase();
                         return (
@@ -698,11 +723,13 @@ export default function SuperAdmin() {
                       }).length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={7} className="text-center text-muted-foreground">
-                            {franquiaFilter ? "Nenhuma franquia encontrada com esse filtro" : "Nenhuma Franquia cadastrada"}
+                            {franquiaFilter || franquiaStatusFilter !== "all" ? "Nenhuma franquia encontrada com esse filtro" : "Nenhuma Franquia cadastrada"}
                           </TableCell>
                         </TableRow>
                       ) : (
                         franquias.filter((f) => {
+                          if (franquiaStatusFilter === "ativa" && !f.ativo) return false;
+                          if (franquiaStatusFilter === "inativa" && f.ativo) return false;
                           if (!franquiaFilter) return true;
                           const filter = franquiaFilter.toLowerCase();
                           return (

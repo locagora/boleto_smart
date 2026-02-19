@@ -2,123 +2,119 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* Design System - BoletoSmart Brand Colors
+   Primary: Azul Petroleo #1F6F8B
+   Secondary: Verde Medio #4CAF6D
+   All colors in HSL.
 */
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 215 25% 15%;
+    --background: 0 0% 99%;
+    --foreground: 198 40% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
+    --card-foreground: 198 40% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
+    --popover-foreground: 198 40% 12%;
 
-    --primary: 210 95% 35%;
+    --primary: 196 64% 33%;
     --primary-foreground: 0 0% 100%;
-    
-    --primary-hover: 210 95% 30%;
-    --primary-light: 210 95% 95%;
 
-    --secondary: 195 85% 45%;
+    --primary-hover: 198 61% 30%;
+    --primary-light: 196 64% 95%;
+
+    --secondary: 140 39% 49%;
     --secondary-foreground: 0 0% 100%;
-    
-    --secondary-hover: 195 85% 40%;
 
-    --muted: 210 20% 96%;
-    --muted-foreground: 215 15% 50%;
+    --secondary-hover: 140 39% 44%;
 
-    --accent: 195 85% 45%;
+    --muted: 196 10% 96%;
+    --muted-foreground: 196 15% 45%;
+
+    --accent: 139 43% 59%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 85% 55%;
     --destructive-foreground: 0 0% 100%;
-    
-    --success: 142 75% 45%;
+
+    --success: 140 39% 49%;
     --success-foreground: 0 0% 100%;
-    
+
     --warning: 38 95% 55%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 215 20% 88%;
-    --input: 215 20% 92%;
-    --ring: 210 95% 35%;
+    --border: 196 15% 88%;
+    --input: 196 15% 92%;
+    --ring: 196 64% 33%;
 
     --radius: 0.5rem;
-    
-    --gradient-primary: linear-gradient(135deg, hsl(210 95% 35%), hsl(195 85% 45%));
-    --gradient-hero: linear-gradient(180deg, hsl(210 20% 98%), hsl(210 40% 96%));
-    
-    --shadow-card: 0 2px 8px -2px hsl(215 25% 15% / 0.08);
-    --shadow-elevated: 0 8px 24px -4px hsl(215 25% 15% / 0.12);
-    
+
+    --gradient-primary: linear-gradient(135deg, hsl(196 64% 33%), hsl(140 39% 49%));
+    --gradient-hero: linear-gradient(180deg, hsl(0 0% 99%), hsl(196 10% 96%));
+
+    --shadow-card: 0 2px 8px -2px hsl(198 40% 12% / 0.08);
+    --shadow-elevated: 0 8px 24px -4px hsl(198 40% 12% / 0.12);
+
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 215 30% 8%;
-    --foreground: 210 20% 96%;
+    --background: 198 30% 7%;
+    --foreground: 196 20% 96%;
 
-    --card: 215 25% 12%;
-    --card-foreground: 210 20% 96%;
+    --card: 198 25% 11%;
+    --card-foreground: 196 20% 96%;
 
-    --popover: 215 25% 12%;
-    --popover-foreground: 210 20% 96%;
+    --popover: 198 25% 11%;
+    --popover-foreground: 196 20% 96%;
 
-    --primary: 210 95% 45%;
+    --primary: 196 64% 42%;
     --primary-foreground: 0 0% 100%;
-    
-    --primary-hover: 210 95% 50%;
-    --primary-light: 210 95% 15%;
 
-    --secondary: 195 85% 50%;
+    --primary-hover: 196 64% 48%;
+    --primary-light: 196 64% 14%;
+
+    --secondary: 140 39% 54%;
     --secondary-foreground: 0 0% 100%;
-    
-    --secondary-hover: 195 85% 55%;
 
-    --muted: 215 25% 16%;
-    --muted-foreground: 215 15% 65%;
+    --secondary-hover: 140 39% 58%;
 
-    --accent: 195 85% 50%;
+    --muted: 198 25% 15%;
+    --muted-foreground: 196 15% 65%;
+
+    --accent: 139 43% 59%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 85% 60%;
     --destructive-foreground: 0 0% 100%;
-    
-    --success: 142 75% 50%;
+
+    --success: 140 39% 54%;
     --success-foreground: 0 0% 100%;
-    
+
     --warning: 38 95% 60%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 215 20% 20%;
-    --input: 215 20% 18%;
-    --ring: 210 95% 45%;
-    
-    --gradient-primary: linear-gradient(135deg, hsl(210 95% 45%), hsl(195 85% 50%));
-    --gradient-hero: linear-gradient(180deg, hsl(215 30% 8%), hsl(215 25% 12%));
-    
+    --border: 198 20% 20%;
+    --input: 198 20% 18%;
+    --ring: 196 64% 42%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(196 64% 42%), hsl(140 39% 54%));
+    --gradient-hero: linear-gradient(180deg, hsl(198 30% 7%), hsl(198 25% 11%));
+
     --shadow-card: 0 2px 8px -2px hsl(0 0% 0% / 0.3);
     --shadow-elevated: 0 8px 24px -4px hsl(0 0% 0% / 0.4);
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -136,6 +132,53 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer utilities {
+  /* Subtle dot grid pattern */
+  .bg-dot-pattern {
+    background-image: radial-gradient(circle, hsl(196 64% 33% / 0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  /* Hero gradient mesh */
+  .bg-hero-mesh {
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 40%, hsl(196 64% 33% / 0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 80% 20%, hsl(140 39% 49% / 0.05) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 60% at 50% 90%, hsl(196 64% 33% / 0.04) 0%, transparent 70%);
+  }
+
+  /* Gradient divider line */
+  .gradient-line {
+    background: linear-gradient(90deg, transparent, hsl(196 64% 33% / 0.25), hsl(140 39% 49% / 0.25), transparent);
+    height: 1px;
+  }
+
+  /* Glassmorphism card */
+  .glass-card {
+    background: hsl(0 0% 100% / 0.75);
+    backdrop-filter: blur(16px);
+    border: 1px solid hsl(196 64% 33% / 0.08);
+  }
+
+  /* Brand gradient text */
+  .text-gradient-brand {
+    background: linear-gradient(135deg, hsl(196 64% 33%), hsl(140 39% 49%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* White dot pattern for dark sections */
+  .bg-dot-pattern-white {
+    background-image: radial-gradient(circle, hsl(0 0% 100% / 0.08) 1px, transparent 1px);
+    background-size: 28px 28px;
   }
 }

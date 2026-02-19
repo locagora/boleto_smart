@@ -140,7 +140,21 @@ Deno.serve(async (req) => {
           .eq('user_id', user.id)
           .eq('entity_type', 'master_regional')
 
-        const masterIds = (userEntities || []).map((ue: any) => ue.entity_id)
+        let masterIds = (userEntities || []).map((ue: any) => ue.entity_id)
+
+        // Fallback: try email match for backwards compatibility
+        if (masterIds.length === 0) {
+          const { data: masterByEmail } = await supabaseClient
+            .from('master_regionais')
+            .select('id')
+            .eq('email', user.email)
+            .maybeSingle()
+
+          if (masterByEmail) {
+            masterIds = [masterByEmail.id]
+          }
+        }
+
         if (masterIds.length > 0 && masterIds.includes(franquia.master_regional_id)) {
           hasAccess = true
         }
@@ -152,7 +166,21 @@ Deno.serve(async (req) => {
           .eq('user_id', user.id)
           .eq('entity_type', 'franquia')
 
-        const franquiaIds = (userEntities || []).map((ue: any) => ue.entity_id)
+        let franquiaIds = (userEntities || []).map((ue: any) => ue.entity_id)
+
+        // Fallback: try email match for backwards compatibility
+        if (franquiaIds.length === 0) {
+          const { data: franquiaByEmail } = await supabaseClient
+            .from('franquias')
+            .select('id')
+            .eq('email', user.email)
+            .maybeSingle()
+
+          if (franquiaByEmail) {
+            franquiaIds = [franquiaByEmail.id]
+          }
+        }
+
         if (franquiaIds.includes(franquia.id)) {
           hasAccess = true
         }

@@ -2,7 +2,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TrendingUp, TrendingDown, DollarSign, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ExternalLink, MessageCircle, Settings, Users, Search, Filter } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ExternalLink, MessageCircle, Settings, Users, Search, Filter, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -670,6 +671,54 @@ const Dashboard = () => {
     window.open(whatsappUrl, '_blank');
   };
 
+  const handleExportExcel = () => {
+    const rows: Record<string, string | number>[] = [];
+
+    const addPaymentsRows = (paymentsToExport: PaymentWithCustomer[], franquiaNome: string) => {
+      const overduePayments = filterPaymentsArray(paymentsToExport, franquiaNome).filter(p => p.status === 'OVERDUE');
+      overduePayments.forEach(p => {
+        rows.push({
+          'Franquia': franquiaNome,
+          'Cliente': p.customerData?.name || 'Desconhecido',
+          'CPF/CNPJ': p.customerData?.cpfCnpj ? formatCpfCnpj(p.customerData.cpfCnpj) : '-',
+          'Telefone': p.customerData?.mobilePhone || '-',
+          'Valor': p.value,
+          'Vencimento': formatDate(p.dueDate),
+          'Status': getStatusLabel(p.status),
+        });
+      });
+    };
+
+    if (userRole === 'super_admin') {
+      mastersData.forEach(master => {
+        master.franquias.forEach(franquia => {
+          addPaymentsRows(franquia.payments, franquia.nome);
+        });
+      });
+    } else if (userRole === 'master_regional') {
+      franquiasData.forEach(franquia => {
+        addPaymentsRows(franquia.payments, franquia.nome);
+      });
+    } else {
+      addPaymentsRows(payments, franquiaName || 'Franquia');
+    }
+
+    if (rows.length === 0) {
+      toast.info("Nenhuma cobrança vencida para exportar");
+      return;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    // Auto-size columns
+    ws['!cols'] = Object.keys(rows[0]).map(key => ({
+      wch: Math.max(key.length, ...rows.map(r => String(r[key]).length)) + 2
+    }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Cobranças Vencidas");
+    XLSX.writeFile(wb, `cobrancas_vencidas_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success(`${rows.length} cobranças exportadas com sucesso!`);
+  };
+
   const renderPaymentsTable = (paymentsToRender: PaymentWithCustomer[]) => {
     // Calcular quantidade de cobranças por cliente
     const customerPaymentCounts: Record<string, number> = {};
@@ -775,14 +824,25 @@ const Dashboard = () => {
             </p>
           </div>
           {!franquiaInativa && (
-            <Button
-              onClick={() => handleRefresh()}
-              disabled={loading}
-              className="gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-              Atualizar
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleExportExcel}
+                disabled={loading || payments.length === 0}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Exportar
+              </Button>
+              <Button
+                onClick={() => handleRefresh()}
+                disabled={loading}
+                className="gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                Atualizar
+              </Button>
+            </div>
           )}
         </div>
 
