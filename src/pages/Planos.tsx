@@ -4,21 +4,66 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, Loader2, ArrowLeft, Users, AlertCircle, CheckCircle2, X, FileX2, Zap, MessageSquare } from "lucide-react";
+import { Check, Loader2, ArrowLeft, Users, AlertCircle, CheckCircle2, X, FileX2, Zap, MessageSquare, Crown, TrendingDown, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
 
+const PRECO_BASE = 149.90;
+
 const planos = [
   {
-    id: "locagora",
-    nome: "Plano Locagora",
+    id: "locagora-mensal",
+    nome: "Mensal",
     faixa: "Franqueados Locagora",
     valorPorCliente: 0,
-    valorFixo: 149.90,
+    valorFixo: PRECO_BASE,
+    valorMensal: PRECO_BASE,
     mensalidadeEstimada: "R$ 149,90",
-    indicado: "Parceria exclusiva para franqueados Locagora",
+    indicado: "Flexibilidade total, sem compromisso de prazo",
+    popular: false,
+    isFixedPrice: true,
+    periodo: "mês",
+    meses: 1,
+    desconto: 0,
+    badge: null,
+    badgeColor: "",
+    accentColor: "primary",
+  },
+  {
+    id: "locagora-semestral",
+    nome: "Semestral",
+    faixa: "Franqueados Locagora",
+    valorPorCliente: 0,
+    valorFixo: Math.round(PRECO_BASE * 0.9 * 6 * 100) / 100,
+    valorMensal: Math.round(PRECO_BASE * 0.9 * 100) / 100,
+    mensalidadeEstimada: `R$ ${(Math.round(PRECO_BASE * 0.9 * 6 * 100) / 100).toFixed(2).replace(".", ",")}`,
+    indicado: "Economia de 10% com pagamento semestral",
+    popular: false,
+    isFixedPrice: true,
+    periodo: "mês",
+    meses: 6,
+    desconto: 10,
+    badge: "10% OFF",
+    badgeColor: "bg-secondary text-white",
+    accentColor: "secondary",
+  },
+  {
+    id: "locagora-anual",
+    nome: "Anual",
+    faixa: "Franqueados Locagora",
+    valorPorCliente: 0,
+    valorFixo: Math.round(PRECO_BASE * 0.8 * 12 * 100) / 100,
+    valorMensal: Math.round(PRECO_BASE * 0.8 * 100) / 100,
+    mensalidadeEstimada: `R$ ${(Math.round(PRECO_BASE * 0.8 * 12 * 100) / 100).toFixed(2).replace(".", ",")}`,
+    indicado: "Maior economia com 20% de desconto",
     popular: true,
     isFixedPrice: true,
+    periodo: "mês",
+    meses: 12,
+    desconto: 20,
+    badge: "Mais Popular",
+    badgeColor: "bg-green-600 text-white",
+    accentColor: "green",
   },
   {
     id: "essencial",
@@ -88,7 +133,10 @@ const Planos = () => {
 
   const getPlanoRange = (planoId: string): { min: number; max: number } => {
     switch (planoId) {
-      case "locagora": return { min: 0, max: Infinity };
+      case "locagora-mensal":
+      case "locagora-semestral":
+      case "locagora-anual":
+        return { min: 0, max: Infinity };
       case "essencial": return { min: 1, max: 10 };
       case "profissional": return { min: 11, max: 30 };
       case "avancado": return { min: 31, max: Infinity };
@@ -143,7 +191,9 @@ const Planos = () => {
       setLoading(true);
 
       const planoSelecionado = planos.find((p) => p.id === selectedPlano);
-      const mensalidadeEstimada = isFixed
+      const isLocagora = selectedPlano?.startsWith("locagora-");
+      const periodoLabel = selectedPlano === "locagora-semestral" ? "Semestral" : selectedPlano === "locagora-anual" ? "Anual" : "Mensal";
+      const valorCobrado = isFixed
         ? planoSelecionado?.valorFixo || 0
         : qtdClientes * (planoSelecionado?.valorPorCliente || 0);
 
@@ -152,12 +202,14 @@ const Planos = () => {
         cnpj: cnpj.replace(/\D/g, ""),
         email,
         whatsapp: whatsapp.replace(/\D/g, ""),
-        plano: planoSelecionado?.nome,
+        plano: isLocagora ? `Locagora ${periodoLabel}` : planoSelecionado?.nome,
         plano_id: selectedPlano,
         valor_por_moto: isFixed ? planoSelecionado?.valorFixo : planoSelecionado?.valorPorCliente,
         quantidade_motos: isFixed ? 1 : qtdClientes,
-        mensalidade_estimada: mensalidadeEstimada,
+        mensalidade_estimada: valorCobrado,
         faixa_motos: planoSelecionado?.faixa,
+        periodo_meses: (planoSelecionado as any)?.meses || 1,
+        desconto_percentual: (planoSelecionado as any)?.desconto || 0,
         timestamp: new Date().toISOString(),
       };
 
@@ -290,31 +342,52 @@ const Planos = () => {
 
             <div className="space-y-5">
               {/* Selected Plan Display */}
-              {selectedPlano && (
-                <div className={cn(
-                  "rounded-lg p-4 mb-6",
-                  isFixedPricePlan(selectedPlano) ? "bg-green-600/10" : "bg-primary/10"
-                )}>
-                  <p className="text-sm text-muted-foreground mb-1">Plano selecionado:</p>
-                  <p className="font-semibold text-foreground">
-                    {planos.find((p) => p.id === selectedPlano)?.nome} - R${" "}
-                    {isFixedPricePlan(selectedPlano)
-                      ? `${planos.find((p) => p.id === selectedPlano)?.valorFixo?.toFixed(2).replace(".", ",")}/mês`
-                      : `${planos.find((p) => p.id === selectedPlano)?.valorPorCliente.toFixed(2).replace(".", ",")}/cliente`}
-                  </p>
-                  {isFixedPricePlan(selectedPlano) ? (
-                    <p className="text-sm text-green-600 mt-2">
-                      Mensalidade fixa: <strong>R$ {planos.find((p) => p.id === selectedPlano)?.valorFixo?.toFixed(2).replace(".", ",")}</strong>
+              {selectedPlano && (() => {
+                const planoSel = planos.find((p) => p.id === selectedPlano);
+                const isFixed = isFixedPricePlan(selectedPlano);
+                const isLocagora = selectedPlano.startsWith("locagora-");
+                const periodoLabel = selectedPlano === "locagora-semestral" ? "Semestral" : selectedPlano === "locagora-anual" ? "Anual" : "Mensal";
+                const meses = (planoSel as any)?.meses || 1;
+
+                return (
+                  <div className={cn(
+                    "rounded-lg p-4 mb-6",
+                    isFixed ? "bg-green-600/10" : "bg-primary/10"
+                  )}>
+                    <p className="text-sm text-muted-foreground mb-1">Plano selecionado:</p>
+                    <p className="font-semibold text-foreground">
+                      {isLocagora ? `Locagora ${periodoLabel}` : planoSel?.nome}
                     </p>
-                  ) : (
-                    quantidadeClientes && parseInt(quantidadeClientes) > 0 && (
-                      <p className="text-sm text-primary mt-2">
-                        Mensalidade estimada: <strong>R$ {(parseInt(quantidadeClientes) * (planos.find((p) => p.id === selectedPlano)?.valorPorCliente || 0)).toFixed(2).replace(".", ",")}</strong>
-                      </p>
-                    )
-                  )}
-                </div>
-              )}
+                    {isFixed ? (
+                      <div className="mt-2 space-y-1">
+                        {meses > 1 ? (
+                          <>
+                            <p className="text-sm text-green-600">
+                              Equivalente: <strong>R$ {(planoSel as any)?.valorMensal?.toFixed(2).replace(".", ",")}/mês</strong>
+                            </p>
+                            <p className="text-base font-bold text-green-700">
+                              Valor a pagar: R$ {planoSel?.valorFixo?.toFixed(2).replace(".", ",")}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {meses} meses com {(planoSel as any).desconto}% de desconto
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-sm text-green-600">
+                            Valor: <strong>R$ {planoSel?.valorFixo?.toFixed(2).replace(".", ",")}/mês</strong>
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      quantidadeClientes && parseInt(quantidadeClientes) > 0 && (
+                        <p className="text-sm text-primary mt-2">
+                          Mensalidade estimada: <strong>R$ {(parseInt(quantidadeClientes) * (planoSel?.valorPorCliente || 0)).toFixed(2).replace(".", ",")}</strong>
+                        </p>
+                      )
+                    )}
+                  </div>
+                );
+              })()}
 
               {!selectedPlano && (
                 <div className="bg-muted rounded-lg p-4 mb-6 text-center">
@@ -420,136 +493,300 @@ const Planos = () => {
           </Card>
 
           {/* Plans Grid - Right Side */}
-          <div className="lg:col-span-2 flex flex-col gap-6">
-            {/* Plano Locagora - Full Width */}
-            {planos.filter(p => p.isFixedPrice).map((plano) => (
-              <Card
-                key={plano.id}
-                className={cn(
-                  "relative p-6 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-2",
-                  selectedPlano === plano.id
-                    ? "ring-2 ring-green-600 bg-green-600/5 border-green-600"
-                    : "hover:border-green-500/50 border-green-500/30"
-                )}
-                onClick={() => {
-                  setSelectedPlano(plano.id);
-                  const range = getPlanoRange(plano.id);
-                  setQuantidadeClientes(range.min.toString());
-                }}
-              >
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                    Parceria Exclusiva
-                  </span>
-                </div>
+          <div className="lg:col-span-2 flex flex-col gap-8">
+            {/* Planos Locagora - 3 colunas */}
+            <div>
+              <div className="flex items-center justify-center gap-2 mb-8">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent to-green-500/30" />
+                <span className="bg-green-600 text-white text-xs font-semibold px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-md">
+                  <Crown className="h-3.5 w-3.5" />
+                  Parceria Exclusiva Locagora
+                </span>
+                <div className="h-px flex-1 bg-gradient-to-l from-transparent to-green-500/30" />
+              </div>
 
-                {selectedPlano === plano.id && (
-                  <div className="absolute top-3 right-3">
-                    <div className="bg-green-600 text-white rounded-full p-1">
-                      <Check className="h-4 w-4" />
-                    </div>
+              {(() => {
+                const features = [
+                  { text: "Clientes ilimitados", bold: true },
+                  { text: "Visualização PIX e Boletos" },
+                  { text: "Cobranças vencidas" },
+                  { text: "2ª via pelo locatário" },
+                  { text: "Cobrança via WhatsApp" },
+                  { text: "Integração com Asaas" },
+                  { text: "Suporte prioritário" },
+                ];
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:items-stretch">
+                    {planos.filter(p => p.isFixedPrice).map((plano) => {
+                      const isSelected = selectedPlano === plano.id;
+                      const isSemestral = plano.id === "locagora-semestral";
+                      const isAnual = plano.id === "locagora-anual";
+                      const isMensal = plano.id === "locagora-mensal";
+
+                      // Cores por plano
+                      const cardGradient = isAnual
+                        ? "linear-gradient(145deg, #1a7a3a, #22863a 30%, #1e6f32 70%, #196b2e)"
+                        : isSemestral
+                          ? "linear-gradient(145deg, #2d8a5e, #4CAF6D 30%, #3d9960 70%, #358a55)"
+                          : "linear-gradient(145deg, #1a5f7a, #1F6F8B 30%, #1a6580 70%, #175e75)";
+
+                      const glowColors = isAnual
+                        ? "from-green-400/20 via-green-500/10 to-emerald-600/20"
+                        : isSemestral
+                          ? "from-green-400/15 via-emerald-500/10 to-teal-600/15"
+                          : "from-cyan-400/15 via-teal-500/10 to-blue-600/15";
+
+                      const accentColor = isAnual
+                        ? "text-yellow-300"
+                        : isSemestral
+                          ? "text-emerald-200"
+                          : "text-cyan-200";
+
+                      const accentBg = isAnual
+                        ? "bg-yellow-400/90 text-yellow-900 border-yellow-300"
+                        : isSemestral
+                          ? "bg-emerald-400/90 text-emerald-900 border-emerald-300"
+                          : "bg-cyan-300/20 border-cyan-300/30";
+
+                      const selectedCheckBg = isAnual
+                        ? "text-green-700"
+                        : isSemestral
+                          ? "text-green-700"
+                          : "text-teal-700";
+
+                      const ctaLabel = isAnual
+                        ? "Selecionar Plano Anual"
+                        : isSemestral
+                          ? "Selecionar Semestral"
+                          : "Selecionar Mensal";
+
+                      const periodoTotal = isAnual
+                        ? `Pague R$ ${plano.valorFixo?.toFixed(2).replace(".", ",")} por ano`
+                        : isSemestral
+                          ? `Pague R$ ${plano.valorFixo?.toFixed(2).replace(".", ",")} por semestre`
+                          : null;
+
+                      const economiaLabel = plano.desconto > 0
+                        ? `Economize R$ ${(PRECO_BASE * plano.meses - plano.valorFixo).toFixed(2).replace(".", ",")}/${isAnual ? "ano" : "sem"}`
+                        : null;
+
+                      return (
+                        <div
+                          key={plano.id}
+                          className={cn("relative", isAnual && "md:-mt-2")}
+                        >
+                          {/* Glow decorativo */}
+                          {isAnual && (
+                            <div className={cn("absolute -inset-1 bg-gradient-to-br rounded-2xl blur-lg", glowColors)} />
+                          )}
+
+                          <div
+                            className={cn(
+                              "relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 h-full flex flex-col",
+                              isSelected
+                                ? "ring-2 ring-white shadow-2xl"
+                                : "shadow-xl hover:shadow-2xl"
+                            )}
+                            style={{ background: cardGradient }}
+                            onClick={() => {
+                              setSelectedPlano(plano.id);
+                              setQuantidadeClientes("0");
+                            }}
+                          >
+                            {/* Pattern overlay */}
+                            <div
+                              className="absolute inset-0 opacity-[0.06]"
+                              style={{
+                                backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
+                                backgroundSize: "20px 20px",
+                              }}
+                            />
+
+                            {/* Badge topo */}
+                            {(isAnual || plano.badge) && (
+                              <div className="relative bg-white/15 backdrop-blur-sm text-center py-2 px-4 border-b border-white/10">
+                                {isAnual ? (
+                                  <>
+                                    <Star className="h-3.5 w-3.5 inline mr-1.5 -mt-0.5 text-yellow-300" />
+                                    <span className="text-sm font-bold text-white tracking-wide">Mais Popular</span>
+                                    <Star className="h-3.5 w-3.5 inline ml-1.5 -mt-0.5 text-yellow-300" />
+                                  </>
+                                ) : (
+                                  <span className="text-sm font-bold text-white tracking-wide">{plano.badge}</span>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="relative p-6 flex flex-col flex-1">
+                              {/* Check selecionado */}
+                              {isSelected && (
+                                <div className="absolute top-2 right-2">
+                                  <div className={cn("bg-white rounded-full p-1 shadow", selectedCheckBg)}>
+                                    <Check className="h-4 w-4" />
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="flex flex-col flex-1 text-center">
+                                <h3 className={cn(
+                                  "font-extrabold text-white mb-4",
+                                  isAnual ? "text-2xl" : "text-xl"
+                                )}>{plano.nome}</h3>
+
+                                {/* Preco */}
+                                <div className="mb-4">
+                                  {plano.desconto > 0 && (
+                                    <div className="flex items-center justify-center gap-2 mb-3">
+                                      <span className="text-sm text-white/60 line-through decoration-2">
+                                        R$ {PRECO_BASE.toFixed(2).replace(".", ",")}
+                                      </span>
+                                      <span className={cn(
+                                        "text-sm font-extrabold px-3 py-1.5 rounded-full border shadow-lg animate-pulse",
+                                        accentBg
+                                      )}>
+                                        -{plano.desconto}% OFF
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className="flex items-baseline justify-center gap-1">
+                                    <span className="text-lg text-white/70">R$</span>
+                                    <span className={cn(
+                                      "font-black text-white tracking-tight",
+                                      isAnual ? "text-6xl" : "text-5xl"
+                                    )} style={{ textShadow: "0 2px 10px rgba(0,0,0,0.2)" }}>
+                                      {(plano as any).valorMensal?.toFixed(2).replace(".", ",")}
+                                    </span>
+                                    <span className="text-white/60 text-sm">/mês</span>
+                                  </div>
+                                  {periodoTotal && (
+                                    <p className="text-sm font-semibold text-white/80 mt-2">
+                                      {periodoTotal}
+                                    </p>
+                                  )}
+                                  {isMensal && (
+                                    <p className="text-sm text-white/70 mt-2">
+                                      {plano.indicado}
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* Economia */}
+                                {economiaLabel ? (
+                                  <div className={cn(
+                                    "rounded-lg p-3 backdrop-blur-sm border flex items-center justify-center gap-2 mb-4",
+                                    isAnual
+                                      ? "bg-yellow-400/20 border-yellow-400/30"
+                                      : "bg-emerald-400/20 border-emerald-300/30"
+                                  )}>
+                                    <TrendingDown className={cn("h-5 w-5", accentColor)} />
+                                    <span className={cn("text-base font-extrabold", accentColor)}>
+                                      {economiaLabel}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="mb-4" />
+                                )}
+
+                                {/* Divider */}
+                                <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-4" />
+
+                                {/* Features */}
+                                <div className="space-y-2.5 text-left mb-5 flex-1">
+                                  {features.map((feature, i) => (
+                                    <div key={i} className="flex items-center gap-2.5">
+                                      <div className="h-5 w-5 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0">
+                                        <Check className="h-3 w-3 text-white" />
+                                      </div>
+                                      <span className={cn(
+                                        "text-sm text-white/90",
+                                        feature.bold && "font-semibold text-white"
+                                      )}>{feature.text}</span>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {/* CTA */}
+                                <button className={cn(
+                                  "w-full py-3 rounded-lg font-bold text-sm transition-all duration-200 mt-auto",
+                                  isSelected
+                                    ? "bg-white text-green-700 shadow-lg"
+                                    : "bg-white/15 text-white border border-white/20 hover:bg-white/25"
+                                )}>
+                                  {isSelected ? "Selecionado" : ctaLabel}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
+                );
+              })()}
 
-                <div className="space-y-4 text-center">
-                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                    <Users className="h-4 w-4" />
-                    <span className="text-sm">{plano.faixa}</span>
-                  </div>
-
-                  <h3 className="text-xl font-bold text-foreground">{plano.nome}</h3>
-
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-3xl font-bold text-green-600">
-                      R$ {plano.valorFixo?.toFixed(2).replace(".", ",")}
-                    </span>
-                    <span className="text-muted-foreground text-sm">/mês</span>
-                  </div>
-
-                  <div className="pt-4 border-t">
-                    <p className="text-sm text-foreground">{plano.indicado}</p>
-                  </div>
-
-                  <div className="pt-4 space-y-2 inline-block text-left">
-                    <div className="flex items-center gap-2 text-sm text-foreground">
-                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                      <span><strong>Clientes ilimitados</strong></span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-foreground">
-                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                      <span>Visualização PIX e Boletos</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-foreground">
-                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                      <span>Visualização de cobranças vencidas</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-foreground">
-                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                      <span>2ª via solicitada pelo locatário</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-foreground">
-                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                      <span>Cobrança via WhatsApp</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-foreground">
-                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                      <span>Integração com Asaas</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-foreground">
-                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                      <span>Suporte prioritário</span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            ))}
+              {/* Nota todos os planos */}
+              <p className="text-center text-xs text-muted-foreground mt-5">
+                Todos os planos incluem os mesmos recursos. Escolha o prazo que melhor se encaixa.
+              </p>
+            </div>
 
             {/* Outros Planos - 3 colunas: Essencial | Profissional | Avançado */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {planos.filter(p => !p.isFixedPrice).map((plano) => (
-                <Card
-                key={plano.id}
-                className={cn(
-                  "relative p-6 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
-                  selectedPlano === plano.id
-                    ? "ring-2 ring-primary bg-primary/5 border-primary"
-                    : "hover:border-primary/50"
-                )}
-                onClick={() => {
-                  setSelectedPlano(plano.id);
-                  const range = getPlanoRange(plano.id);
-                  setQuantidadeClientes(range.min.toString());
-                }}
-              >
-                {selectedPlano === plano.id && (
-                  <div className="absolute top-3 right-3">
-                    <div className="bg-primary text-primary-foreground rounded-full p-1">
-                      <Check className="h-4 w-4" />
+            <div>
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent to-primary/20" />
+                <span className="text-xs font-medium text-muted-foreground px-3 py-1 rounded-full border">
+                  Outros Planos
+                </span>
+                <div className="h-px flex-1 bg-gradient-to-l from-transparent to-primary/20" />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {planos.filter(p => !p.isFixedPrice).map((plano) => (
+                  <Card
+                    key={plano.id}
+                    className={cn(
+                      "relative p-6 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
+                      selectedPlano === plano.id
+                        ? "ring-2 ring-primary bg-primary/5 border-primary"
+                        : "hover:border-primary/50"
+                    )}
+                    onClick={() => {
+                      setSelectedPlano(plano.id);
+                      const range = getPlanoRange(plano.id);
+                      setQuantidadeClientes(range.min.toString());
+                    }}
+                  >
+                    {selectedPlano === plano.id && (
+                      <div className="absolute top-3 right-3">
+                        <div className="bg-primary text-primary-foreground rounded-full p-1">
+                          <Check className="h-4 w-4" />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Users className="h-4 w-4" />
+                        <span className="text-sm">{plano.faixa}</span>
+                      </div>
+
+                      <h3 className="text-xl font-bold text-foreground">{plano.nome}</h3>
+
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-bold text-primary">
+                          R$ {plano.valorPorCliente.toFixed(2).replace(".", ",")}
+                        </span>
+                        <span className="text-muted-foreground text-sm">/cliente</span>
+                      </div>
+
+                      <div className="pt-4 border-t">
+                        <p className="text-sm text-foreground">{plano.indicado}</p>
+                      </div>
                     </div>
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Users className="h-4 w-4" />
-                    <span className="text-sm">{plano.faixa}</span>
-                  </div>
-
-                  <h3 className="text-xl font-bold text-foreground">{plano.nome}</h3>
-
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold text-primary">
-                      R$ {plano.valorPorCliente.toFixed(2).replace(".", ",")}
-                    </span>
-                    <span className="text-muted-foreground text-sm">/cliente</span>
-                  </div>
-
-                  <div className="pt-4 border-t">
-                    <p className="text-sm text-foreground">{plano.indicado}</p>
-                  </div>
-                </div>
-                </Card>
-              ))}
+                  </Card>
+                ))}
+              </div>
             </div>
           </div>
         </div>
