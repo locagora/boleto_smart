@@ -411,16 +411,29 @@ const Dashboard = () => {
         toast.success(`Atualização completa! Total: ${totalProcessed} cobranças.`);
       } else {
         // For franquia or specific franchise refresh
+        console.log('fetch-payments call with:', franquiaNome ? { franquiaNome } : {}, 'userRole:', userRole);
         const { data, error } = await supabase.functions.invoke('fetch-payments', {
           body: franquiaNome ? { franquiaNome } : {}
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('fetch-payments error details:', { error, data });
+          throw error;
+        }
         await loadPaymentsFromDatabase();
         toast.success(`Dados atualizados! ${data?.stats?.paymentsProcessed || 0} cobranças processadas.`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error refreshing data:', error);
+      // Try to extract the actual error message from the response
+      if (error?.context?.body) {
+        try {
+          const reader = error.context.body.getReader();
+          const { value } = await reader.read();
+          const bodyText = new TextDecoder().decode(value);
+          console.error('Edge Function error body:', bodyText);
+        } catch (e) { /* ignore */ }
+      }
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast.error("Erro ao atualizar dados: " + errorMessage);
     } finally {
