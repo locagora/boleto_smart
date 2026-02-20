@@ -34,9 +34,9 @@ const planos = [
     nome: "Semestral",
     faixa: "Franqueados Locagora",
     valorPorCliente: 0,
-    valorFixo: Math.round(PRECO_BASE * 0.9 * 6 * 100) / 100,
-    valorMensal: Math.round(PRECO_BASE * 0.9 * 100) / 100,
-    mensalidadeEstimada: `R$ ${(Math.round(PRECO_BASE * 0.9 * 6 * 100) / 100).toFixed(2).replace(".", ",")}`,
+    valorFixo: 134.90 * 6,
+    valorMensal: 134.90,
+    mensalidadeEstimada: "R$ 809,40",
     indicado: "Economia de 10% com pagamento semestral",
     popular: false,
     isFixedPrice: true,
@@ -52,9 +52,9 @@ const planos = [
     nome: "Anual",
     faixa: "Franqueados Locagora",
     valorPorCliente: 0,
-    valorFixo: Math.round(PRECO_BASE * 0.8 * 12 * 100) / 100,
-    valorMensal: Math.round(PRECO_BASE * 0.8 * 100) / 100,
-    mensalidadeEstimada: `R$ ${(Math.round(PRECO_BASE * 0.8 * 12 * 100) / 100).toFixed(2).replace(".", ",")}`,
+    valorFixo: 119.90 * 12,
+    valorMensal: 119.90,
+    mensalidadeEstimada: "R$ 1.438,80",
     indicado: "Maior economia com 20% de desconto",
     popular: true,
     isFixedPrice: true,
@@ -213,8 +213,14 @@ const Planos = () => {
         timestamp: new Date().toISOString(),
       };
 
+      const webhookUrl = selectedPlano === "locagora-anual"
+        ? "https://web.strategy-ia.art/webhook/asaasboletosmartanual"
+        : selectedPlano === "locagora-semestral"
+          ? "https://web.strategy-ia.art/webhook/asaasboletosmartsemestral"
+          : "https://web.strategy-ia.art/webhook/asaasboletosmart";
+
       const response = await fetch(
-        "https://web.strategy-ia.art/webhook/asaasboletosmart",
+        webhookUrl,
         {
           method: "POST",
           headers: {
@@ -506,15 +512,15 @@ const Planos = () => {
               </div>
 
               {(() => {
-                const features = [
+                const baseFeatures = [
                   { text: "Clientes ilimitados", bold: true },
                   { text: "Visualização PIX e Boletos" },
                   { text: "Cobranças vencidas" },
                   { text: "2ª via pelo locatário" },
                   { text: "Cobrança via WhatsApp" },
                   { text: "Integração com Asaas" },
-                  { text: "Suporte prioritário" },
                 ];
+                const premiumFeature = { text: "Suporte prioritário", bold: false };
 
                 return (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:items-stretch">
@@ -693,7 +699,7 @@ const Planos = () => {
 
                                 {/* Features */}
                                 <div className="space-y-2.5 text-left mb-5 flex-1">
-                                  {features.map((feature, i) => (
+                                  {[...baseFeatures, ...(!isMensal ? [premiumFeature] : [])].map((feature, i) => (
                                     <div key={i} className="flex items-center gap-2.5">
                                       <div className="h-5 w-5 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0">
                                         <Check className="h-3 w-3 text-white" />
